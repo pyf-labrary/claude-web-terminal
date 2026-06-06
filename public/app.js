@@ -218,20 +218,45 @@ dlg.addEventListener('close', async () => {
 });
 
 // ---- login ----
-function showLogin() { $('#login').hidden = false; }
+async function showLogin() {
+  $('#login').hidden = false;
+  try {
+    const h = await (await fetch('/api/health')).json();
+    if (h.totp) $('#totpField').hidden = false; // reveal 2FA field when enabled
+  } catch {}
+}
 $('#loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = e.target;
   const res = await fetch('/api/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user: f.user.value, pass: f.pass.value }),
+    body: JSON.stringify({ user: f.user.value, pass: f.pass.value, code: f.code.value }),
   });
-  if (res.ok) location.reload();
-  else $('#loginErr').textContent = '用户名或密码错误';
+  if (res.ok) { location.reload(); return; }
+  const body = await res.json().catch(() => ({}));
+  if (res.status === 429) {
+    $('#loginErr').textContent = `尝试过多，请 ${Math.ceil((body.retryMs || 0) / 60000)} 分钟后再试`;
+  } else {
+    if (body.totp) $('#totpField').hidden = false;
+    $('#loginErr').textContent = body.totp ? '用户名/密码/验证码错误' : '用户名或密码错误';
+  }
 });
 $('#logout').addEventListener('click', async () => {
   await fetch('/api/logout', { method: 'POST' });
   location.reload();
+});
+
+// ---- login history ----
+$('#logins').addEventListener('click', async () => {
+  let rows = [];
+  try { rows = await api('GET', '/api/logins'); } catch { return; }
+  const fmt = (r) => {
+    const t = new Date(r.ts).toLocaleString('zh-CN', { hour12: false });
+    const badge = r.ok ? '<span class="ok">✓ 成功</span>' : `<span class="bad">✗ ${r.reason}</span>`;
+    return `<div class="lg"><span class="t">${t}</span>${badge}<span class="ip">${r.ip}</span><span class="ua">${(r.ua || '').replace(/</g, '&lt;')}</span></div>`;
+  };
+  $('#loginsList').innerHTML = rows.length ? rows.map(fmt).join('') : '<p class="hint">暂无记录</p>';
+  $('#loginsDlg').showModal();
 });
 
 // ---- on-screen key bar (mobile) ----

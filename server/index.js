@@ -7,8 +7,9 @@ import { WebSocketServer } from 'ws';
 import { SessionManager, hasTmux } from './sessions.js';
 import {
   checkLogin, mintToken, isAuthed, cookieHeader, clearCookieHeader,
-  isDefaultPass, COOKIE,
+  isDefaultPass, totpEnabled, COOKIE,
 } from './auth.js';
+import { record as recordLogin, recent as recentLogins, lockState } from './authlog.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -36,12 +37,23 @@ app.use('/vendor', express.static(path.join(PUBLIC_DIR, 'vendor')));
 
 // ---- public endpoints ----
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, sessions: manager.sessions.size });
+  res.json({ ok: true, sessions: manager.sessions.size, totp: totpEnabled });
 });
 
 app.post('/api/login', (req, res) => {
-  const { user, pass } = req.body || {};
-  if (!checkLogin(user, pass)) return res.status(401).json({ error: 'bad credentials' });
+  const ip = req.ip;
+  const ua = req.headers['user-agent'];
+  const lock = lockState(ip);
+  if (lock.locked) {
+    recordLogin({ ip, ua, ok: false, reason: 'locked' });
+    return res.status(429).json({ error: 'too many attempts', retryMs: lock.retryMs });
+  }
+  const { user, pass, code } = req.body || {};
+  if (!checkLogin(user, pass, code)) {
+    recordLogin({ ip, ua, ok: false, reason: 'bad-credentials' });
+    return res.status(401).json({ error: 'bad credentials', totp: totpEnabled });
+  }
+  recordLogin({ ip, ua, ok: true });
   res.setHeader('Set-Cookie', cookieHeader(mintToken(), isSecure(req)));
   res.json({ ok: true });
 });
@@ -57,7 +69,9 @@ app.use('/api', (req, res, next) => {
   res.status(401).json({ error: 'unauthorized' });
 });
 
-app.get('/api/me', (req, res) => res.json({ ok: true, defaultPass: isDefaultPass }));
+app.get('/api/me', (req, res) => res.json({ ok: true, defaultPass: isDefaultPass, totp: totpEnabled }));
+
+app.get('/api/logins', (req, res) => res.json(recentLogins(50)));
 
 app.get('/api/dirs', (req, res) => res.json(manager.dirs));
 

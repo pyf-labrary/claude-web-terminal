@@ -18,7 +18,9 @@ Claude session is right where you left it.
   laptop) and the terminals are still running; reopening replays the live screen.
 - 📁 **Remembered working directories** — frequently used project dirs are saved and offered
   as one-click chips when you open a new window.
-- 🔐 **Username / password login** — HMAC-signed cookie auth on both HTTP and WebSocket.
+- 🔐 **Username / password login** — HMAC-signed cookie auth on both HTTP and WebSocket, with
+  optional **TOTP 2FA**, per-IP **brute-force lockout**, and a **login audit log** (success/fail +
+  IP + time) viewable from the header.
 - 📱 **Mobile-friendly** — an on-screen key bar (Esc / Tab / ⇧Tab / Ctrl / ↑↓←→ / ⏎) sends the
   escape sequences Claude's TUI needs but phone soft keyboards lack. Ctrl is sticky: tap it, then a
   letter, for Ctrl-combos.
@@ -104,9 +106,14 @@ sudo systemctl daemon-reload && sudo systemctl enable --now claude-web-terminal
 
 Then point nginx at `127.0.0.1:7531`, issue a cert (HTTP-01 keeps DNS untouched), reload.
 
-> **Security.** This grants whoever logs in a shell on your machine. Always set a strong
-> `CWT_PASS`, terminate TLS in front of it, and prefer binding to `127.0.0.1` behind a reverse
-> proxy (or a private network / VPN) rather than exposing the Node port directly.
+> **Security.** A successful login is a full shell on your machine — treat it accordingly:
+> - Always set a strong `CWT_PASS`; terminate TLS in front; bind to `127.0.0.1`/a private IP behind
+>   the reverse proxy rather than exposing the Node port.
+> - Turn on **TOTP 2FA** (`CWT_TOTP_SECRET`) so a leaked password isn't enough.
+> - The app locks out an IP after `CWT_MAX_FAILS` failures; the nginx example also rate-limits
+>   `/api/login`. Every attempt is written to `auth.log` and shown under the 🛡 header button.
+> - For the strongest posture, don't expose it publicly at all — reach it only over a private
+>   network / VPN (e.g. Tailscale) so the login page has no public attack surface.
 
 > **Claude behind a firewall.** Claude Code needs to reach `api.anthropic.com`. If the server's
 > network can't, set `HTTPS_PROXY` in the service environment — it propagates to every terminal.

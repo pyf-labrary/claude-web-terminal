@@ -14,6 +14,7 @@
     <button id="add" title="新建窗口">＋</button>
     <div class="spacer"></div>
     <span id="status" class="status"></span>
+    <button id="logins" title="登录记录">🛡</button>
     <button id="logout" title="退出登录">⏻</button>
   </header>
 
@@ -59,10 +60,19 @@
       <h2>◎ Claude Web Terminal</h2>
       <input name="user" placeholder="用户名" autocomplete="username" />
       <input name="pass" type="password" placeholder="密码" autocomplete="current-password" />
+      <input name="code" id="totpField" inputmode="numeric" autocomplete="one-time-code"
+             placeholder="6 位验证码" maxlength="6" hidden />
       <button type="submit">登录</button>
       <p id="loginErr" class="err"></p>
     </form>
   </div>
+
+  <!-- login history -->
+  <dialog id="loginsDlg">
+    <h3>登录记录（近 50 条）</h3>
+    <div id="loginsList" class="logins"></div>
+    <menu><button value="ok" autofocus>关闭</button></menu>
+  </dialog>
 
   <script src="/vendor/xterm.js"></script>
   <script src="/vendor/addon-fit.js"></script>

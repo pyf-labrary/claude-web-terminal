@@ -25,6 +25,10 @@ Environment=PORT=7531
 Environment=HOST=127.0.0.1
 Environment=CWT_USER=changeme
 Environment=CWT_PASS=use-a-long-random-password
+# Optional TOTP 2FA (base32 secret) and brute-force lockout knobs:
+# Environment=CWT_TOTP_SECRET=
+# Environment=CWT_MAX_FAILS=6
+# Environment=CWT_LOCK_WINDOW_MS=900000
 # If Claude Code must reach the API through a proxy, uncomment:
 # Environment=HTTPS_PROXY=http://127.0.0.1:7890
 # Environment=HTTP_PROXY=http://127.0.0.1:7890

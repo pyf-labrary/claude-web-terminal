@@ -13,8 +13,43 @@ const PASS = process.env.CWT_PASS || 'admin';
 const TTL_DAYS = Number(process.env.CWT_TTL_DAYS || 30);
 const SECRET = process.env.CWT_SECRET
   || crypto.createHash('sha256').update(`cwt:${USER}:${PASS}`).digest('hex');
+// Optional TOTP (RFC 6238) second factor. Set CWT_TOTP_SECRET (base32) to enable.
+const TOTP_SECRET = (process.env.CWT_TOTP_SECRET || '').replace(/\s/g, '').toUpperCase();
 export const COOKIE = 'cwt_auth';
 export const isDefaultPass = PASS === 'admin';
+export const totpEnabled = !!TOTP_SECRET;
+
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function base32Decode(s) {
+  let bits = 0, val = 0; const out = [];
+  for (const c of s.replace(/=+$/, '')) {
+    const i = B32.indexOf(c);
+    if (i < 0) continue;
+    val = (val << 5) | i; bits += 5;
+    if (bits >= 8) { out.push((val >>> (bits - 8)) & 0xff); bits -= 8; }
+  }
+  return Buffer.from(out);
+}
+function hotp(secret, counter) {
+  const buf = Buffer.alloc(8);
+  buf.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
+  buf.writeUInt32BE(counter >>> 0, 4);
+  const h = crypto.createHmac('sha1', secret).update(buf).digest();
+  const off = h[h.length - 1] & 0xf;
+  const code = ((h[off] & 0x7f) << 24) | ((h[off + 1] & 0xff) << 16)
+    | ((h[off + 2] & 0xff) << 8) | (h[off + 3] & 0xff);
+  return (code % 1_000_000).toString().padStart(6, '0');
+}
+function verifyTOTP(token) {
+  if (!TOTP_SECRET) return true; // disabled
+  if (!/^\d{6}$/.test(String(token || ''))) return false;
+  const secret = base32Decode(TOTP_SECRET);
+  const step = Math.floor(Date.now() / 30000);
+  for (const w of [-1, 0, 1]) {
+    try { if (crypto.timingSafeEqual(Buffer.from(hotp(secret, step + w)), Buffer.from(String(token)))) return true; } catch {}
+  }
+  return false;
+}
 
 function sign(payload) {
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
@@ -37,11 +72,11 @@ function verify(token) {
   return payload;
 }
 
-export function checkLogin(user, pass) {
-  // constant-time-ish compare
+export function checkLogin(user, pass, code) {
   const okUser = user === USER;
   const okPass = pass != null && pass === PASS;
-  return okUser && okPass;
+  const okCode = verifyTOTP(code);
+  return okUser && okPass && okCode;
 }
 
 export function mintToken() {
