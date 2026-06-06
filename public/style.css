@@ -141,3 +141,14 @@ dialog menu button#newOk { background: var(--accent); color: #16161e; font-weigh
   #keybar { opacity: .55; }
   #keybar:hover { opacity: 1; }
 }
+
+/* narrow screens (phones, portrait): reclaim header width for the tab switcher */
+#tabs { -webkit-overflow-scrolling: touch; }
+@media (max-width: 640px) {
+  .brand { display: none; }          /* drop the wordmark */
+  #status { display: none; }         /* drop the status text */
+  .spacer { display: none; }         /* let tabs take the slack */
+  #tabs { flex: 1 1 auto; min-width: 0; }
+  .tab { max-width: 52vw; padding: 0 10px; }
+  #add, #logout { padding: 0 12px; font-size: 20px; }
+}
