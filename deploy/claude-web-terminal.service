@@ -15,6 +15,11 @@ WorkingDirectory=/opt/claude-web-terminal
 ExecStart=/usr/bin/node server/index.js
 Restart=on-failure
 RestartSec=3
+# IMPORTANT: only signal the node process on stop/restart. The default
+# (control-group) would also kill the tmux server living in node's cgroup,
+# destroying every session. KillMode=process lets tmux survive a restart so
+# sessions reconnect right where they were.
+KillMode=process
 # Credentials & options — edit these:
 Environment=PORT=7531
 Environment=HOST=127.0.0.1
