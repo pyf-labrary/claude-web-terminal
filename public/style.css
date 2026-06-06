@@ -1,0 +1,118 @@
+:root {
+  --bg: #1a1b26;
+  --bar: #16161e;
+  --tab: #20212e;
+  --tab-active: #2a2b3d;
+  --fg: #c0caf5;
+  --muted: #565f89;
+  --accent: #7aa2f7;
+  --danger: #f7768e;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.4 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  display: flex;
+  flex-direction: column;
+}
+
+#bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--bar);
+  border-bottom: 1px solid #000;
+  height: 38px;
+  flex: 0 0 auto;
+  padding-right: 8px;
+}
+.brand { align-self: center; padding: 0 14px 0 12px; font-weight: 700; color: var(--fg); white-space: nowrap; letter-spacing: .2px; }
+.brand span { color: var(--muted); font-weight: 400; }
+#tabs { display: flex; align-items: stretch; overflow-x: auto; }
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--tab);
+  border-right: 1px solid #000;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--muted);
+  max-width: 220px;
+}
+.tab.active { background: var(--tab-active); color: var(--fg); border-bottom: 2px solid var(--accent); }
+.tab .dot { width: 7px; height: 7px; border-radius: 50%; background: #2ac3de; flex: 0 0 auto; }
+.tab.dead .dot { background: var(--danger); }
+.tab .name { overflow: hidden; text-overflow: ellipsis; }
+.tab .close { color: var(--muted); border: 0; background: none; cursor: pointer; font-size: 14px; padding: 0 2px; }
+.tab .close:hover { color: var(--danger); }
+
+button { color: var(--fg); }
+#add, #logout {
+  background: none; border: 0; color: var(--muted); font-size: 18px;
+  cursor: pointer; padding: 0 12px;
+}
+#add:hover, #logout:hover { color: var(--accent); }
+.spacer { flex: 1; }
+.status { align-self: center; color: var(--muted); font-size: 12px; padding: 0 8px; }
+.status.err { color: var(--danger); }
+
+#stage { flex: 1; position: relative; overflow: hidden; }
+.term-pane {
+  position: absolute; inset: 0; padding: 4px 6px;
+  display: none;
+}
+.term-pane.active { display: block; }
+.term-pane .xterm { height: 100%; }
+
+#empty {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); flex-direction: column; gap: 10px;
+}
+#empty button { background: var(--accent); color: #16161e; border: 0; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+
+dialog {
+  background: var(--tab-active); color: var(--fg); border: 1px solid #000; border-radius: 10px;
+  padding: 20px; min-width: 340px;
+}
+dialog::backdrop { background: rgba(0,0,0,.5); }
+dialog h3 { margin: 0 0 14px; }
+dialog label { display: block; margin: 10px 0; font-size: 12px; color: var(--muted); }
+dialog input { width: 100%; margin-top: 4px; padding: 7px 9px; background: var(--bg); border: 1px solid #000; border-radius: 6px; color: var(--fg); font: inherit; }
+dialog .hint { color: var(--muted); font-size: 11px; }
+dialog menu { display: flex; justify-content: flex-end; gap: 10px; padding: 0; margin: 14px 0 0; }
+dialog menu button { background: var(--tab); border: 1px solid #000; border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+dialog menu button#newOk { background: var(--accent); color: #16161e; font-weight: 600; }
+
+/* remembered-dir chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
+.chip {
+  font-size: 11px; padding: 3px 9px; border-radius: 999px; cursor: pointer;
+  background: var(--bg); border: 1px solid #000; color: var(--accent);
+}
+.chip:hover { background: var(--accent); color: #16161e; }
+
+/* login overlay */
+#login {
+  position: fixed; inset: 0; z-index: 50;
+  background: radial-gradient(circle at 50% 30%, #20212e, #15161e);
+  display: flex; align-items: center; justify-content: center;
+}
+#login[hidden] { display: none; }
+#loginForm {
+  display: flex; flex-direction: column; gap: 12px; width: 280px;
+  background: var(--tab-active); padding: 28px; border-radius: 12px;
+  border: 1px solid #000; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+#loginForm h2 { margin: 0 0 6px; text-align: center; font-size: 18px; }
+#loginForm input {
+  padding: 10px 12px; background: var(--bg); border: 1px solid #000;
+  border-radius: 8px; color: var(--fg); font: inherit;
+}
+#loginForm button {
+  padding: 10px; background: var(--accent); color: #16161e; border: 0;
+  border-radius: 8px; font-weight: 700; cursor: pointer;
+}
+#loginForm .err { color: var(--danger); font-size: 12px; text-align: center; min-height: 14px; margin: 0; }

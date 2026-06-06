@@ -1,0 +1,28 @@
+# systemd unit for claude-web-terminal.
+# System service:  /etc/systemd/system/claude-web-terminal.service
+#   then: systemctl daemon-reload && systemctl enable --now claude-web-terminal
+# User service:    ~/.config/systemd/user/claude-web-terminal.service
+#   then: systemctl --user enable --now claude-web-terminal
+#         (and `loginctl enable-linger $USER` so it survives logout)
+[Unit]
+Description=Claude Web Terminal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/claude-web-terminal
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=3
+# Credentials & options — edit these:
+Environment=PORT=7531
+Environment=HOST=127.0.0.1
+Environment=CWT_USER=changeme
+Environment=CWT_PASS=use-a-long-random-password
+# If Claude Code must reach the API through a proxy, uncomment:
+# Environment=HTTPS_PROXY=http://127.0.0.1:7890
+# Environment=HTTP_PROXY=http://127.0.0.1:7890
+
+[Install]
+WantedBy=multi-user.target

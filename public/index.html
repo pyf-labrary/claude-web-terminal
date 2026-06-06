@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Claude Web Terminal</title>
+  <link rel="stylesheet" href="/vendor/xterm.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header id="bar">
+    <span class="brand">◎ claude<span>·web·terminal</span></span>
+    <div id="tabs"></div>
+    <button id="add" title="新建窗口">＋</button>
+    <div class="spacer"></div>
+    <span id="status" class="status"></span>
+    <button id="logout" title="退出登录">⏻</button>
+  </header>
+
+  <main id="stage"></main>
+
+  <!-- create-window dialog -->
+  <dialog id="newDlg">
+    <form method="dialog">
+      <h3>新建窗口</h3>
+      <label>名称 <input name="name" placeholder="window" autocomplete="off" /></label>
+      <label>工作目录
+        <input name="cwd" list="dirlist" placeholder="~ (默认 home)" autocomplete="off" />
+        <datalist id="dirlist"></datalist>
+      </label>
+      <div id="dirchips" class="chips"></div>
+      <label>启动命令 <input name="command" value="claude" autocomplete="off" /></label>
+      <p class="hint">留空命令则只开一个交互 shell。会话由 tmux 托管，刷新/重启后可重连。</p>
+      <menu>
+        <button value="cancel">取消</button>
+        <button value="ok" id="newOk">创建</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- login overlay -->
+  <div id="login" hidden>
+    <form id="loginForm">
+      <h2>◎ Claude Web Terminal</h2>
+      <input name="user" placeholder="用户名" autocomplete="username" />
+      <input name="pass" type="password" placeholder="密码" autocomplete="current-password" />
+      <button type="submit">登录</button>
+      <p id="loginErr" class="err"></p>
+    </form>
+  </div>
+
+  <script src="/vendor/xterm.js"></script>
+  <script src="/vendor/addon-fit.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
