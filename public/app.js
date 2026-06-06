@@ -59,7 +59,15 @@ class Win {
     this.fit = new FitAddon.FitAddon();
     this.term.loadAddon(this.fit);
     this.term.open(this.pane);
-    this.term.onData((d) => this.send({ t: 'i', d }));
+    this.term.onData((d) => {
+      // sticky Ctrl from the on-screen key bar: convert the next typed char
+      if (app.ctrl && d.length === 1) {
+        const code = d.toUpperCase().charCodeAt(0);
+        if (code >= 64 && code <= 95) d = String.fromCharCode(code - 64);
+        app.setCtrl(false);
+      }
+      this.send({ t: 'i', d });
+    });
     this.connect();
     this.updateDot();
   }
@@ -113,6 +121,15 @@ class Win {
 const app = {
   wins: new Map(),
   active: null,
+  ctrl: false,
+
+  setCtrl(on) {
+    this.ctrl = on;
+    const b = $('#kCtrl');
+    if (b) b.classList.toggle('on', on);
+  },
+
+  activeWin() { return this.wins.get(this.active); },
 
   add(info) {
     const w = new Win(info);
@@ -215,6 +232,25 @@ $('#loginForm').addEventListener('submit', async (e) => {
 $('#logout').addEventListener('click', async () => {
   await fetch('/api/logout', { method: 'POST' });
   location.reload();
+});
+
+// ---- on-screen key bar (mobile) ----
+const KEYS = {
+  esc: '\x1b', tab: '\t', stab: '\x1b[Z', ctrlc: '\x03', enter: '\r',
+  up: '\x1b[A', down: '\x1b[B', left: '\x1b[D', right: '\x1b[C',
+};
+document.querySelectorAll('#keybar button').forEach((b) => {
+  // prevent the button from stealing focus (keeps soft keyboard up)
+  b.addEventListener('pointerdown', (e) => e.preventDefault());
+  b.addEventListener('click', () => {
+    const w = app.activeWin();
+    const key = b.dataset.key;
+    if (key === 'ctrl') { app.setCtrl(!app.ctrl); return; }
+    if (key === 'kbd') { if (w) w.term.focus(); return; }
+    if (!w) return;
+    w.send({ t: 'i', d: KEYS[key] });
+    w.term.focus();
+  });
 });
 
 // ---- global resize ----

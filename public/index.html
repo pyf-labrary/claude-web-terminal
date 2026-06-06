@@ -19,6 +19,21 @@
 
   <main id="stage"></main>
 
+  <!-- on-screen keys for mobile soft keyboards (no arrows/Esc/Tab/Ctrl) -->
+  <div id="keybar">
+    <button data-key="esc">Esc</button>
+    <button data-key="tab">Tab</button>
+    <button data-key="stab">⇧Tab</button>
+    <button data-key="ctrl" id="kCtrl" title="Ctrl（按一下，再按字母）">Ctrl</button>
+    <button data-key="ctrlc">^C</button>
+    <button data-key="up">↑</button>
+    <button data-key="down">↓</button>
+    <button data-key="left">←</button>
+    <button data-key="right">→</button>
+    <button data-key="enter" class="wide">⏎</button>
+    <button data-key="kbd" id="kKbd" title="弹出/收起键盘">⌨</button>
+  </div>
+
   <!-- create-window dialog -->
   <dialog id="newDlg">
     <form method="dialog">

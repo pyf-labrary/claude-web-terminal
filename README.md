@@ -19,11 +19,14 @@ Claude session is right where you left it.
 - 📁 **Remembered working directories** — frequently used project dirs are saved and offered
   as one-click chips when you open a new window.
 - 🔐 **Username / password login** — HMAC-signed cookie auth on both HTTP and WebSocket.
+- 📱 **Mobile-friendly** — an on-screen key bar (Esc / Tab / ⇧Tab / Ctrl / ↑↓←→ / ⏎) sends the
+  escape sequences Claude's TUI needs but phone soft keyboards lack. Ctrl is sticky: tap it, then a
+  letter, for Ctrl-combos.
 - 📦 **No CDN** — xterm is vendored locally (works behind restrictive networks).
 
-| New window (with remembered dirs) | Login |
-|---|---|
-| ![new window dialog](docs/new-window.png) | ![login](docs/login.png) |
+| New window (with remembered dirs) | Login | On a phone (on-screen keys) |
+|---|---|---|
+| ![new window dialog](docs/new-window.png) | ![login](docs/login.png) | ![mobile](docs/mobile.png) |
 
 ## Architecture
 
