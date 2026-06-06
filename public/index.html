@@ -69,9 +69,11 @@
 
   <!-- login history -->
   <dialog id="loginsDlg">
-    <h3>登录记录（近 50 条）</h3>
-    <div id="loginsList" class="logins"></div>
-    <menu><button value="ok" autofocus>关闭</button></menu>
+    <form method="dialog">
+      <h3>登录记录（近 50 条）</h3>
+      <div id="loginsList" class="logins"></div>
+      <menu><button value="ok" autofocus>关闭</button></menu>
+    </form>
   </dialog>
 
   <script src="/vendor/xterm.js"></script>
