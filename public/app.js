@@ -40,6 +40,9 @@ function flashStatus(msg) {
   statusTimer = setTimeout(() => setStatus(''), 1500);
 }
 
+// For anything interpolated into innerHTML.
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
 function setStatus(msg, err) {
   statusEl.textContent = msg || '';
   statusEl.classList.toggle('err', !!err);
@@ -251,9 +254,9 @@ async function openNewDialog() {
   let dirs = [];
   try { dirs = await api('GET', '/api/dirs'); } catch {}
   const dl = $('#dirlist');
-  dl.innerHTML = dirs.map((d) => `<option value="${d}">`).join('');
+  dl.innerHTML = dirs.map((d) => `<option value="${esc(d)}">`).join('');
   const chips = $('#dirchips');
-  chips.innerHTML = dirs.slice(0, 6).map((d) => `<span class="chip" data-d="${d}">${d.replace(/^.*\//, '') || d}</span>`).join('');
+  chips.innerHTML = dirs.slice(0, 6).map((d) => `<span class="chip" data-d="${esc(d)}">${esc(d.replace(/^.*\//, '') || d)}</span>`).join('');
   chips.querySelectorAll('.chip').forEach((c) =>
     c.addEventListener('click', () => { dlg.querySelector('[name=cwd]').value = c.dataset.d; }));
   dlg.showModal();
@@ -309,10 +312,12 @@ $('#logout').addEventListener('click', async () => {
 $('#logins').addEventListener('click', async () => {
   let rows = [];
   try { rows = await api('GET', '/api/logins'); } catch { return; }
+  // Every field may come from a stranger's request (ip used to be forgeable via
+  // X-Forwarded-For), so escape all of them.
   const fmt = (r) => {
     const t = new Date(r.ts).toLocaleString('zh-CN', { hour12: false });
-    const badge = r.ok ? '<span class="ok">✓ 成功</span>' : `<span class="bad">✗ ${r.reason}</span>`;
-    return `<div class="lg"><span class="t">${t}</span>${badge}<span class="ip">${r.ip}</span><span class="ua">${(r.ua || '').replace(/</g, '&lt;')}</span></div>`;
+    const badge = r.ok ? '<span class="ok">✓ 成功</span>' : `<span class="bad">✗ ${esc(r.reason)}</span>`;
+    return `<div class="lg"><span class="t">${esc(t)}</span>${badge}<span class="ip">${esc(r.ip)}</span><span class="ua">${esc(r.ua)}</span></div>`;
   };
   $('#loginsList').innerHTML = rows.length ? rows.map(fmt).join('') : '<p class="hint">暂无记录</p>';
   $('#loginsDlg').showModal();
