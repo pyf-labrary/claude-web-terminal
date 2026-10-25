@@ -14,6 +14,32 @@ async function api(method, path, body) {
   return res.status === 204 ? null : res.json();
 }
 
+// Clipboard API needs a secure context (https); over plain http on the tailnet
+// fall back to the old execCommand route.
+async function copyText(text) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch {}
+    ta.remove();
+    app.activeWin()?.term.focus();
+  }
+  flashStatus(`已复制 ${[...text].length} 个字符`);
+}
+
+let statusTimer;
+function flashStatus(msg) {
+  setStatus(msg);
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => setStatus(''), 1500);
+}
+
 function setStatus(msg, err) {
   statusEl.textContent = msg || '';
   statusEl.classList.toggle('err', !!err);
@@ -55,10 +81,43 @@ class Win {
     this.term = new Terminal({
       theme: THEME, fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
       fontSize: 13, cursorBlink: true, scrollback: 5000, allowProposedApi: true,
+      macOptionClickForcesSelection: true, // Option-drag on macOS = native selection
     });
     this.fit = new FitAddon.FitAddon();
     this.term.loadAddon(this.fit);
     this.term.open(this.pane);
+    // Mouse drag goes to tmux (mouse on); on release tmux sends the text back as
+    // OSC 52 "c;<base64>". Put it on the browser clipboard.
+    this.term.parser.registerOscHandler(52, (data) => {
+      const b64 = data.slice(data.indexOf(';') + 1);
+      if (!b64 || b64 === '?') return true;
+      try {
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        copyText(new TextDecoder().decode(bytes));
+      } catch {}
+      return true;
+    });
+    // Shift-drag (Option-drag on macOS) bypasses tmux and selects in xterm itself:
+    // copy on select, like most terminals.
+    this.term.onSelectionChange(() => {
+      const t = this.term.getSelection();
+      if (t) copyText(t);
+    });
+    this.term.attachCustomKeyEventHandler((e) => {
+      if (e.type !== 'keydown') return true;
+      const k = e.key.toLowerCase();
+      // Ctrl+Shift+C / Cmd+C copy; plain Ctrl+C copies only while something is
+      // selected (Windows Terminal style), otherwise it's still ^C.
+      if (k === 'c' && (e.metaKey || (e.ctrlKey && (e.shiftKey || this.term.hasSelection())))) {
+        if (this.term.hasSelection()) { copyText(this.term.getSelection()); this.term.clearSelection(); }
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+V / Ctrl+Shift+V: don't send ^V, let the browser fire its native
+      // paste event, which xterm turns into a (bracketed) paste.
+      if (k === 'v' && e.ctrlKey && !e.altKey) return false;
+      return true;
+    });
     this.term.onData((d) => {
       // sticky Ctrl from the on-screen key bar: convert the next typed char
       if (app.ctrl && d.length === 1) {

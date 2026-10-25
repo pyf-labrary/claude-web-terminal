@@ -70,6 +70,9 @@ export class Session {
   _attachPty() {
     if (this.pty) return;
     this.ensureTmux();
+    // Let copies (tmux mouse selection, or an app's own OSC 52) reach the browser
+    // clipboard: tmux forwards them to xterm.js as OSC 52, which app.js handles.
+    tmux(['set-option', '-s', 'set-clipboard', 'on']);
     this.pty = pty.spawn('tmux', ['attach-session', '-t', this.tmuxName], {
       name: 'xterm-256color',
       cols: this.cols,
