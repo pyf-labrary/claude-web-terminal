@@ -28,16 +28,40 @@ function isSecure(req) {
   return req.secure || req.headers['x-forwarded-proto'] === 'https';
 }
 
+// Only trust X-Forwarded-For from the reverse proxy itself; `true` would let any
+// client forge its IP and walk around the per-IP lockout and the audit log.
+const TRUST_PROXY = process.env.CWT_TRUST_PROXY || 'loopback';
+
+// Reject requests whose Origin isn't this host. Cookies are SameSite=Lax, so a
+// page on a sibling subdomain counts as same-site and would otherwise be able
+// to open the terminal WebSocket with the user's cookie.
+function sameOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return false;
+  try { return new URL(origin).host === req.headers.host; } catch { return false; }
+}
+
 const app = express();
-app.set('trust proxy', true);
+app.disable('x-powered-by');
+app.set('trust proxy', TRUST_PROXY);
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+});
 app.use(express.json());
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET' || sameOrigin(req)) return next();
+  res.status(403).json({ error: 'bad origin' });
+});
 
 app.use('/', express.static(PUBLIC_DIR));
 app.use('/vendor', express.static(path.join(PUBLIC_DIR, 'vendor')));
 
 // ---- public endpoints ----
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, sessions: manager.sessions.size, totp: totpEnabled });
+  res.json({ ok: true, totp: totpEnabled }); // login page needs `totp`; session count stays private
 });
 
 app.post('/api/login', (req, res) => {
@@ -94,6 +118,10 @@ const wss = new WebSocketServer({ noServer: true });
 server.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname !== '/ws') return socket.destroy();
+  if (!sameOrigin(req)) {
+    socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+    return socket.destroy();
+  }
   if (!isAuthed(req)) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
     return socket.destroy();
